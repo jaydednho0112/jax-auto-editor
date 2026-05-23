@@ -1,1 +1,80 @@
-ind
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>JAX AUTO Delivery Studio v4</title>
+<style>
+:root{--bg:#0f0f10;--panel:#17181b;--line:#303238;--text:#f5f5f5;--muted:#a8a8a8;--gold:#caa85a}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Arial,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:16px}
+.app{max-width:1450px;margin:auto;display:grid;grid-template-columns:360px 1fr;gap:18px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:16px}
+h1{font-size:20px;margin:0 0 4px}.sub{font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.45}
+label{display:block;font-size:13px;color:#ddd;margin-top:12px;margin-bottom:6px}
+input,select,button{width:100%;padding:11px;border-radius:10px;border:1px solid var(--line);background:#101114;color:white;font-size:14px}
+button{background:#fff;color:#111;font-weight:700;cursor:pointer;margin-top:10px}
+button.dark{background:#24262a;color:white}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.modelBtns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.modelBtns button{font-size:12px;padding:9px;margin:0;background:#22242a;color:white}
+.preview{display:flex;justify-content:center;align-items:flex-start}
+canvas{width:100%;max-width:760px;border-radius:14px;background:#222;box-shadow:0 20px 80px rgba(0,0,0,.45)}
+.checkrow{display:flex;align-items:center;gap:8px;margin-top:12px;color:#ddd;font-size:13px}.checkrow input{width:auto;margin:0}
+.note{font-size:12px;color:var(--muted);line-height:1.5;margin-top:12px}
+@media(max-width:900px){.app{grid-template-columns:1fr}canvas{max-width:100%}}
+</style>
+</head>
+<body>
+<div class="app">
+<div class="panel">
+<h1>JAX AUTO Delivery Studio v4</h1>
+<div class="sub">Phase 1 · 多模板 · 快捷车型 · Logo上传 · Watermark · 原图不重画</div>
+<label>Upload delivery photo</label><input type="file" id="photo" accept="image/*">
+<label>Upload JAX logo / brand logo</label><input type="file" id="logo" accept="image/*">
+<label>Template</label><select id="template"><option value="modern">Template 1 — Modern Clean</option><option value="luxury">Template 2 — Luxury Dealer</option><option value="polaroid">Template 3 — Polaroid Social Proof</option><option value="dark">Template 4 — Minimal Dark</option></select>
+<label>Output ratio</label><select id="ratio"><option value="4:5">Instagram 4:5</option><option value="1:1">Square 1:1</option><option value="9:16">Story / Reels 9:16</option><option value="xhs">Xiaohongshu 3:4</option><option value="whatsapp">WhatsApp Status 9:16</option></select>
+<div class="row"><div><label>Brightness</label><input type="range" id="brightness" min="80" max="135" value="106"></div><div><label>Contrast</label><input type="range" id="contrast" min="80" max="145" value="112"></div></div>
+<label>Title</label><input id="title" value="DELIVERED">
+<label>Subtitle</label><input id="subtitle" value="SUCCESSFULLY">
+<label>Model</label><input id="model" value="CHERY TIGGO 8 PRO">
+<div class="modelBtns">
+<button type="button" onclick="setModel('JAECOO J7')">JAECOO J7</button><button type="button" onclick="setModel('JAECOO J5')">JAECOO J5</button>
+<button type="button" onclick="setModel('PROTON X50')">PROTON X50</button><button type="button" onclick="setModel('PROTON X70')">PROTON X70</button>
+<button type="button" onclick="setModel('PROTON S70')">PROTON S70</button><button type="button" onclick="setModel('TIGGO CROSS')">TIGGO CROSS</button>
+<button type="button" onclick="setModel('CHERY TIGGO 7 PRO')">TIGGO 7 PRO</button><button type="button" onclick="setModel('CHERY TIGGO 8 PRO')">TIGGO 8 PRO</button>
+<button type="button" onclick="setModel('CHERY OMODA 5')">OMODA 5</button>
+</div>
+<label>Thank you text</label><input id="thanks" value="Thank you!">
+<label>Name</label><input id="name" value="Jayden Ho">
+<label>Brand</label><input id="brand" value="JAX AUTO">
+<label>Watermark</label><input id="watermark" value="@jaydenho.auto">
+<div class="checkrow"><input type="checkbox" id="showBrand" checked><span>Show brand / logo</span></div>
+<div class="checkrow"><input type="checkbox" id="showWatermark" checked><span>Show watermark</span></div>
+<button onclick="draw()">Update Preview</button><button onclick="downloadImage()" class="dark">Download PNG</button>
+<div class="note">这个工具只在原图上加设计层，不会 AI 重画人物、脸、车或背景。</div>
+</div>
+<div class="preview"><canvas id="canvas" width="1080" height="1350"></canvas></div>
+</div>
+<script>
+const canvas=document.getElementById("canvas"),ctx=canvas.getContext("2d");let photoImg=null,logoImg=null;
+const sans='Arial, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif', script='Brush Script MT, Segoe Script, cursive';
+function el(id){return document.getElementById(id)}function setModel(v){el("model").value=v;draw()}
+function setRatio(){const r=el("ratio").value;if(r==="4:5"){canvas.width=1080;canvas.height=1350}if(r==="1:1"){canvas.width=1080;canvas.height=1080}if(r==="9:16"){canvas.width=1080;canvas.height=1920}if(r==="xhs"){canvas.width=1080;canvas.height=1440}if(r==="whatsapp"){canvas.width=1080;canvas.height=1920}}
+function loadFile(input,cb){const file=input.files[0];if(!file)return;const reader=new FileReader();reader.onload=ev=>{const image=new Image();image.onload=()=>cb(image);image.src=ev.target.result};reader.readAsDataURL(file)}
+el("photo").addEventListener("change",e=>loadFile(e.target,img=>{photoImg=img;draw()}));el("logo").addEventListener("change",e=>loadFile(e.target,img=>{logoImg=img;draw()}));
+["template","ratio","brightness","contrast","title","subtitle","model","thanks","name","brand","watermark","showBrand","showWatermark"].forEach(id=>el(id).addEventListener("input",draw));
+function drawCoverImage(img,inset=0){const w=canvas.width-inset*2,h=canvas.height-inset*2,scale=Math.max(w/img.width,h/img.height),nw=img.width*scale,nh=img.height*scale,x=inset+(w-nw)/2,y=inset+(h-nh)/2;ctx.drawImage(img,x,y,nw,nh)}
+function drawBasePhoto(inset=0){if(photoImg){ctx.save();ctx.filter=`brightness(${el("brightness").value}%) contrast(${el("contrast").value}%)`;drawCoverImage(photoImg,inset);ctx.restore()}else{ctx.fillStyle="#222";ctx.fillRect(0,0,canvas.width,canvas.height);ctx.fillStyle="#aaa";ctx.font=`34px ${sans}`;ctx.textAlign="center";ctx.fillText("Upload your delivery photo",canvas.width/2,canvas.height/2);ctx.textAlign="left"}}
+function gradientTopBottom(a=.5,b=.6){const w=canvas.width,h=canvas.height;let top=ctx.createLinearGradient(0,0,0,h*.35);top.addColorStop(0,`rgba(0,0,0,${a})`);top.addColorStop(1,"rgba(0,0,0,0)");ctx.fillStyle=top;ctx.fillRect(0,0,w,h*.45);let bot=ctx.createLinearGradient(0,h*.55,0,h);bot.addColorStop(0,"rgba(0,0,0,0)");bot.addColorStop(1,`rgba(0,0,0,${b})`);ctx.fillStyle=bot;ctx.fillRect(0,h*.5,w,h*.5)}
+function drawLogoOrBrand(x,y,maxW,maxH,align="left",color="white"){if(!el("showBrand").checked)return;ctx.save();if(logoImg){const scale=Math.min(maxW/logoImg.width,maxH/logoImg.height),nw=logoImg.width*scale,nh=logoImg.height*scale,px=align==="right"?x-nw:x;ctx.drawImage(logoImg,px,y,nw,nh)}else{ctx.fillStyle=color;ctx.font=`700 25px ${sans}`;ctx.textAlign=align;ctx.fillText(el("brand").value.toUpperCase(),x,y+28)}ctx.restore()}
+function drawWatermark(x,y,align="right",color="rgba(255,255,255,.8)"){if(!el("showWatermark").checked)return;ctx.save();ctx.fillStyle=color;ctx.font=`500 20px ${sans}`;ctx.textAlign=align;ctx.fillText(el("watermark").value,x,y);ctx.restore()}
+function modernTemplate(){const w=canvas.width,h=canvas.height;drawBasePhoto(0);gradientTopBottom(.52,.66);ctx.strokeStyle="rgba(255,255,255,.9)";ctx.lineWidth=3;ctx.strokeRect(28,28,w-56,h-56);ctx.fillStyle="#caa85a";ctx.fillRect(60,72,5,70);ctx.fillStyle="white";ctx.font=`700 42px ${sans}`;ctx.fillText(el("title").value.toUpperCase(),85,105);ctx.font=`400 28px ${sans}`;ctx.fillText(el("subtitle").value.toUpperCase(),85,148);ctx.font=`500 20px ${sans}`;ctx.fillStyle="rgba(255,255,255,.86)";ctx.fillText(el("model").value.toUpperCase(),85,190);ctx.fillStyle="white";ctx.font=`italic 74px ${script}`;ctx.fillText(el("thanks").value,70,h-150);ctx.font=`400 22px ${sans}`;ctx.fillText("ENJOY YOUR NEW RIDE",72,h-100);ctx.textAlign="right";ctx.font=`italic 70px ${script}`;ctx.fillText(el("name").value,w-70,h-150);ctx.font=`400 22px ${sans}`;ctx.fillText("YOUR CAR ADVISOR",w-72,h-100);drawLogoOrBrand(w-70,70,150,60,"right");drawWatermark(w-70,h-58,"right");ctx.textAlign="left"}
+function luxuryTemplate(){const w=canvas.width,h=canvas.height;drawBasePhoto(0);ctx.fillStyle="rgba(0,0,0,.55)";ctx.fillRect(0,0,w,h);gradientTopBottom(.35,.72);ctx.strokeStyle="#caa85a";ctx.lineWidth=3;ctx.strokeRect(30,30,w-60,h-60);drawLogoOrBrand(70,75,170,70,"left","#fff");ctx.fillStyle="#caa85a";ctx.font=`900 ${Math.round(w*.095)}px ${sans}`;ctx.textAlign="center";ctx.fillText(el("title").value.toUpperCase(),w/2,Math.round(h*.23));ctx.fillStyle="#fff";ctx.font=`400 26px ${sans}`;ctx.fillText("THANK YOU FOR YOUR TRUST & SUPPORT",w/2,Math.round(h*.28));ctx.fillStyle="rgba(0,0,0,.55)";ctx.fillRect(55,h-210,390,92);ctx.strokeStyle="rgba(202,168,90,.75)";ctx.strokeRect(55,h-210,390,92);ctx.textAlign="left";ctx.fillStyle="#fff";ctx.font=`700 25px ${sans}`;ctx.fillText(el("model").value.toUpperCase(),80,h-170);ctx.font=`400 18px ${sans}`;ctx.fillText("DELIVERED BY JAYDEN",80,h-138);ctx.textAlign="right";ctx.fillStyle="#fff";ctx.font=`italic 68px ${script}`;ctx.fillText(el("name").value,w-70,h-125);ctx.fillStyle="#caa85a";ctx.font=`500 22px ${sans}`;ctx.fillText("DELIVERED BY",w-74,h-178);drawWatermark(w-70,h-58,"right","#caa85a");ctx.textAlign="left"}
+function polaroidTemplate(){const w=canvas.width,h=canvas.height;ctx.fillStyle="#f4f1ea";ctx.fillRect(0,0,w,h);const m=70,photoX=m,photoY=m,photoW=w-m*2,photoH=Math.round(h*.66);ctx.shadowColor="rgba(0,0,0,.25)";ctx.shadowBlur=22;ctx.shadowOffsetY=8;ctx.fillStyle="#fff";ctx.fillRect(m-18,m-18,photoW+36,photoH+230);ctx.shadowColor="transparent";if(photoImg){ctx.save();ctx.beginPath();ctx.rect(photoX,photoY,photoW,photoH);ctx.clip();ctx.filter=`brightness(${el("brightness").value}%) contrast(${el("contrast").value}%)`;const scale=Math.max(photoW/photoImg.width,photoH/photoImg.height),nw=photoImg.width*scale,nh=photoImg.height*scale;ctx.drawImage(photoImg,photoX+(photoW-nw)/2,photoY+(photoH-nh)/2,nw,nh);ctx.restore()}else{ctx.fillStyle="#ddd";ctx.fillRect(photoX,photoY,photoW,photoH)}ctx.fillStyle="#111";ctx.font=`italic 72px ${script}`;ctx.fillText("Delivered ♡",m,h-245);ctx.font=`700 24px ${sans}`;ctx.fillText(el("model").value.toUpperCase(),m,h-190);ctx.font=`400 20px ${sans}`;ctx.fillText("THANK YOU FOR YOUR TRUST",m,h-140);ctx.textAlign="right";ctx.font=`italic 62px ${script}`;ctx.fillText(el("name").value,w-m,h-205);drawLogoOrBrand(w-m,h-165,150,55,"right","#111");drawWatermark(w-m,h-100,"right","#111");ctx.textAlign="left"}
+function darkTemplate(){const w=canvas.width,h=canvas.height;drawBasePhoto(0);ctx.fillStyle="rgba(0,0,0,.42)";ctx.fillRect(0,0,w,h);ctx.fillStyle="rgba(0,0,0,.78)";ctx.fillRect(0,0,w,170);ctx.fillRect(0,h-180,w,180);drawLogoOrBrand(60,54,160,60,"left","#fff");ctx.textAlign="right";ctx.fillStyle="#fff";ctx.font=`800 42px ${sans}`;ctx.fillText(el("title").value.toUpperCase(),w-60,75);ctx.font=`400 24px ${sans}`;ctx.fillText(el("subtitle").value.toUpperCase(),w-60,112);ctx.textAlign="left";ctx.fillStyle="#caa85a";ctx.font=`700 24px ${sans}`;ctx.fillText(el("model").value.toUpperCase(),60,h-115);ctx.fillStyle="#fff";ctx.font=`italic 62px ${script}`;ctx.fillText(el("name").value,60,h-58);drawWatermark(w-60,h-65,"right","#fff");ctx.textAlign="left"}
+function draw(){setRatio();ctx.clearRect(0,0,canvas.width,canvas.height);const t=el("template").value;if(t==="modern")modernTemplate();if(t==="luxury")luxuryTemplate();if(t==="polaroid")polaroidTemplate();if(t==="dark")darkTemplate()}
+function downloadImage(){draw();const link=document.createElement("a");link.download="jax-auto-delivery-studio.png";link.href=canvas.toDataURL("image/png",1.0);link.click()}
+draw();
+</script>
+</body>
+</html>
